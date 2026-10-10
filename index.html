@@ -1,0 +1,338 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Car Racing Game</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #101820, #253746);
+      color: white;
+      text-align: center;
+    }
+
+    header {
+      padding: 25px 10px;
+      background: #ff3c00;
+    }
+
+    header h1 {
+      font-size: 36px;
+      text-transform: uppercase;
+    }
+
+    header p {
+      margin-top: 8px;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: center;
+      gap: 35px;
+      margin: 15px;
+      font-size: 20px;
+    }
+
+    .game {
+      position: relative;
+      width: 320px;
+      height: 480px;
+      max-width: 100%;
+      margin: 20px auto;
+      overflow: hidden;
+      background: #333;
+      border-left: 8px solid #ddd;
+      border-right: 8px solid #ddd;
+    }
+
+    .line {
+      position: absolute;
+      width: 6px;
+      height: 70px;
+      background: white;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .car {
+      position: absolute;
+      width: 42px;
+      height: 70px;
+      border-radius: 10px 10px 5px 5px;
+      box-shadow: inset 0 0 0 3px #222;
+    }
+
+    .player {
+      bottom: 20px;
+      left: 130px;
+      background: #00d9ff;
+    }
+
+    .player::before, .enemy::before {
+      content: "";
+      position: absolute;
+      width: 22px;
+      height: 23px;
+      left: 7px;
+      top: 9px;
+      background: #bdefff;
+      border-radius: 5px;
+    }
+
+    .enemy {
+      top: -80px;
+      background: #ff3030;
+    }
+
+    .enemy::before {
+      background: #ffaaaa;
+    }
+
+    .controls {
+      margin: 20px auto;
+    }
+
+    button {
+      padding: 12px 24px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      background: #ff3c00;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #ff6a00;
+    }
+
+    .instructions {
+      max-width: 500px;
+      margin: 25px auto;
+      line-height: 1.8;
+      color: #ddd;
+    }
+
+    footer {
+      background: #080d12;
+      padding: 18px;
+      margin-top: 25px;
+      color: #aaa;
+    }
+
+    @media (max-width: 400px) {
+      .game {
+        height: 430px;
+      }
+
+      header h1 {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>🏎️ Car Racing Game</h1>
+    <p>Race fast. Dodge traffic. Beat your high score!</p>
+  </header>
+
+  <main class="container">
+    <h2>Ready to Race?</h2>
+
+    <div class="scoreboard">
+      <div>Score: <span id="score">0</span></div>
+      <div>Best: <span id="best">0</span></div>
+    </div>
+
+    <div class="game" id="game">
+      <div class="car player" id="player"></div>
+    </div>
+
+    <div class="controls">
+      <button onclick="startGame()">▶ Start Game</button>
+      <br>
+      <button onclick="moveLeft()">⬅ Left</button>
+      <button onclick="moveRight()">Right ➡</button>
+    </div>
+
+    <div class="instructions">
+      <h3>How to Play</h3>
+      <p>🚗 Move your car left and right to avoid other cars.</p>
+      <p>⌨️ Use the ← and → arrow keys on your keyboard.</p>
+      <p>🏆 Survive longer to increase your score!</p>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2026 Car Racing Game | Made for Racing Fans 🏁</p>
+  </footer>
+
+  <script>
+    const game = document.getElementById("game");
+    const player = document.getElementById("player");
+    const scoreText = document.getElementById("score");
+    const bestText = document.getElementById("best");
+
+    let playerX = 130;
+    let score = 0;
+    let best = 0;
+    let running = false;
+    let enemies = [];
+    let lines = [];
+    let animation;
+    let lastTime = 0;
+    let spawnTime = 0;
+
+    function createRoad() {
+      for (let i = 0; i < 6; i++) {
+        const line = document.createElement("div");
+        line.className = "line";
+        line.style.top = (i * 90) + "px";
+        game.appendChild(line);
+        lines.push(line);
+      }
+    }
+
+    createRoad();
+
+    function startGame() {
+      cancelAnimationFrame(animation);
+      enemies.forEach(enemy => enemy.element.remove());
+      enemies = [];
+
+      score = 0;
+      playerX = (game.clientWidth - player.offsetWidth) / 2;
+      player.style.left = playerX + "px";
+      scoreText.textContent = score;
+
+      lines.forEach((line, i) => {
+        line.style.top = (i * 90) + "px";
+      });
+
+      running = true;
+      lastTime = 0;
+      spawnTime = 0;
+      animation = requestAnimationFrame(update);
+    }
+
+    function moveLeft() {
+      if (!running) return;
+      playerX = Math.max(0, playerX - 25);
+      player.style.left = playerX + "px";
+    }
+
+    function moveRight() {
+      if (!running) return;
+      playerX = Math.min(
+        game.clientWidth - player.offsetWidth,
+        playerX + 25
+      );
+      player.style.left = playerX + "px";
+    }
+
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        moveLeft();
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        moveRight();
+      }
+    });
+
+    function createEnemy() {
+      const element = document.createElement("div");
+      element.className = "car enemy";
+
+      const maxX = game.clientWidth - 42;
+      const x = Math.random() * maxX;
+      element.style.left = x + "px";
+      game.appendChild(element);
+
+      enemies.push({ element, x, y: -80 });
+    }
+
+    function update(timestamp) {
+      if (!running) return;
+
+      const delta = lastTime
+        ? Math.min((timestamp - lastTime) / 16.67, 3)
+        : 1;
+
+      lastTime = timestamp;
+      spawnTime += delta;
+
+      lines.forEach(line => {
+        let y = parseFloat(line.style.top) + 6 * delta;
+        if (y > game.clientHeight) y = -70;
+        line.style.top = y + "px";
+      });
+
+      if (spawnTime > 48) {
+        createEnemy();
+        spawnTime = 0;
+      }
+
+      enemies.forEach(enemy => {
+        enemy.y += 4 * delta;
+        enemy.element.style.top = enemy.y + "px";
+
+        const playerY = game.clientHeight - 90;
+
+        if (
+          enemy.x < playerX + 38 &&
+          enemy.x + 38 > playerX &&
+          enemy.y < playerY + 65 &&
+          enemy.y + 65 > playerY
+        ) {
+          endGame();
+        }
+      });
+
+      enemies = enemies.filter(enemy => {
+        if (enemy.y > game.clientHeight) {
+          enemy.element.remove();
+          score++;
+          scoreText.textContent = score;
+          return false;
+        }
+        return true;
+      });
+
+      if (running) {
+        animation = requestAnimationFrame(update);
+      }
+    }
+
+    function endGame() {
+      running = false;
+      cancelAnimationFrame(animation);
+
+      best = Math.max(best, score);
+      bestText.textContent = best;
+
+      alert("🏁 Game Over! Your score: " + score);
+    }
+  </script>
+
+</body>
+</html>
